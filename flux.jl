@@ -5,6 +5,7 @@ using Metalhead, Images
 using Images.ImageCore
 using Flux: onehotbatch, onecold
 using Base.Iterators: partition
+using Flux: @epochs
 
 Metalhead.download(CIFAR10)
 X = trainimgs(CIFAR10)
@@ -17,7 +18,7 @@ image.(X[rand(1:end, 10)])
 getarray(X) = float.(permutedims(channelview(X), (2, 3, 1)))
 imgs = [getarray(X[i].img) for i in 1:50000]
 
-train = gpu.([(cat(imgs[i]..., dims=4), labels[:, i]) for i in partition(1:49000, 1000)])
+train = gpu.([(cat(imgs[i]..., dims=4), labels[:, i]) for i in partition(1:20000, 1000)])
 valset = 49001:50000
 valX = cat(imgs[valset]..., dims=4) |> gpu
 valY = labels[:, valset] |> gpu
@@ -42,8 +43,7 @@ opt = Momentum(0.01)
 accuracy(x, y) = mean(onecold(m(x), 1:10) .== onecold(y, 1:10))
 
 
-using Flux: @epochs
-epochs = 10
+epochs = 20
 
 @epochs epochs Flux.train!(
     loss, params(m), train, opt,
