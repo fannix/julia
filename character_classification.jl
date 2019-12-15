@@ -5,9 +5,8 @@ folder = joinpath("/", "home", "xmeng", "projects", "julia")
 
 trainset = []
 
-for d in 'A':'Z'
-    label = string(d)
-    path = joinpath(folder, label)
+for label in 'A':'Z'
+    path = joinpath(folder, string(label))
     if isdir(path)
         files = readdir(path)
         for file in files
@@ -42,7 +41,7 @@ function make_minibatch(X, Y, idxs)
     for i in 1:length(idxs)
         X_batch[:, :, :, i] = Float32.(X[idxs[i]])
     end
-    Y_batch = onehotbatch(Y[idxs], string.(collect('A':'Z')))
+    Y_batch = onehotbatch(Y[idxs], Vector('A':'Z'))
     return (X_batch, Y_batch)
 end
 
@@ -63,13 +62,20 @@ model = Chain(
 
 model(train[1][1])
 
+using Flux: @epochs, throttle, crossentropy, onecold
+
 loss(x, y) = crossentropy(model(x), y)
 
 
 evalcb = () -> @show(loss(train[1][1], train[1][2]))
 
-using Flux: @epochs
 
 @epochs 10 Flux.train!(loss, params(model), train, ADAM(), cb = throttle(evalcb, 10))
 
-# accuracy(x, y) = mean(onecold(model(x)) .== onecold(y))
+using Statistics: mean
+
+accuracy(x, y) = mean(onecold(model(x)) .== onecold(y))
+
+testX = cat(resize_img..., dims=4)
+
+accuracy(testX, onehotbatch(labelset, Vector('A':'Z')))
