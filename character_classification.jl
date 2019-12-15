@@ -70,7 +70,7 @@ loss(x, y) = crossentropy(model(x), y)
 evalcb = () -> @show(loss(train[1][1], train[1][2]))
 
 
-@epochs 10 Flux.train!(loss, params(model), train, ADAM(), cb = throttle(evalcb, 10))
+@epochs 50 Flux.train!(loss, params(model), train, ADAM(), cb = throttle(evalcb, 10))
 
 using Statistics: mean
 
@@ -78,4 +78,27 @@ accuracy(x, y) = mean(onecold(model(x)) .== onecold(y))
 
 testX = cat(resize_img..., dims=4)
 
-accuracy(testX, onehotbatch(labelset, Vector('A':'Z')))
+
+@show accuracy(testX, onehotbatch(labelset, Vector('A':'Z')))
+
+# predict_y = onecold(model(testX))
+# actual_y = labelset
+# using DataFrames
+# df = DataFrame(actual=actual_y .-1 .+ 'A', predict=predict_y .- 1 .+ 'A')
+# df[df.actual .!= df.predict , :]
+
+# sklearn
+using ScikitLearn
+
+# This model requires scikit-learn. See
+# http://scikitlearnjl.readthedocs.io/en/latest/models/#installation
+@sk_import linear_model: LogisticRegression
+
+X = hcat(reshape.(resize_img, :)...)'
+y = string.(labelset)
+
+model = LogisticRegression(fit_intercept=true)
+fit!(model, X, y)
+
+accuracy = sum(predict(model, X) .== y) / length(y)
+println("accuracy: $accuracy")
