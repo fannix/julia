@@ -73,9 +73,13 @@ evalcb = () -> @show(loss(train[1][1], train[1][2]))
 
 @epochs 50 Flux.train!(loss, params(model), train, ADAM(), cb = throttle(evalcb, 10))
 
-# testX = cat(resize_img..., dims=4)
 
-# @show accuracy(testX, onehotbatch(labelset, Vector('A':'Z')))
+testfolder = joinpath("/", "home", "xmeng", "projects", "julia", "test")
+testset, label = readdata(testfolder)
+test = cat(testset..., dims=4)
+@show accuracy(test, onehotbatch(label, Vector('A':'Z')))
+
+testlabel = onecold(model(test))
 
 # predict_y = onecold(model(testX))
 # actual_y = labelset
@@ -84,22 +88,20 @@ evalcb = () -> @show(loss(train[1][1], train[1][2]))
 # df[df.actual .!= df.predict , :]
 
 # sklearn
-# using ScikitLearn
+using ScikitLearn
 
 # This model requires scikit-learn. See
 # http://scikitlearnjl.readthedocs.io/en/latest/models/#installation
 # @sk_import linear_model: LogisticRegression
 
-# X = hcat(reshape.(resize_img, :)...)'
-# y = string.(labelset)
+Xtest = hcat(reshape.(testset, :)...)'
+ytest = string.(label)
 
-# model = LogisticRegression(fit_intercept=true)
-# fit!(model, X, y)
+Xtrain = hcat(reshape.(resize_img, :)...)'
+ytrain = string.(labelset)
 
-# accuracy = sum(predict(model, X) .== y) / length(y)
-# println("accuracy: $accuracy")
+skmodel = LogisticRegression(fit_intercept=true)
+fit!(skmodel, Xtrain, ytrain)
 
-testfolder = joinpath("/", "home", "xmeng", "projects", "julia", "test")
-testset, label = readdata(testfolder)
-test = cat(testset..., dims=4)
-@show accuracy(test, onehotbatch(label, Vector('A':'Z')))
+skaccuracy = sum(predict(skmodel, Xtest) .== ytest) / length(y)
+@show skaccuracy
