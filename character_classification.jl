@@ -71,15 +71,15 @@ loss(x, y) = crossentropy(model(x), y)
 
 evalcb = () -> @show([accuracy(batch[1], batch[2]) for batch in train])
 
-@epochs 20 Flux.train!(loss, params(model), train, ADAM(), cb = throttle(evalcb, 10))
+@epochs 2 Flux.train!(loss, params(model), train, ADAM(), cb = throttle(evalcb, 10))
 
 
 testfolder = joinpath("/", "home", "xmeng", "projects", "julia", "test")
 testset, test_label = readdata(testfolder)
 testimg = cat(testset..., dims=4)
-@show accuracy(testimg, onehotbatch(label, Vector('A':'Z')))
+@show accuracy(testimg, onehotbatch(test_label, Vector('A':'Z')))
 
-predict_test_label = onecold(model(test))
+predict_test_label = onecold(model(testimg))
 
 # predict_y = onecold(model(testX))
 # actual_y = labelset
@@ -93,6 +93,9 @@ using ScikitLearn
 # This model requires scikit-learn. See
 # http://scikitlearnjl.readthedocs.io/en/latest/models/#installation
 @sk_import linear_model: LogisticRegression
+@sk_import ensemble: RandomForestClassifier
+@sk_import svm: LinearSVC
+@sk_import svm: SVC
 
 Xtest = hcat(reshape.(testset, :)...)'
 ytest = string.(test_label)
@@ -100,7 +103,7 @@ ytest = string.(test_label)
 Xtrain = hcat(reshape.(train_img, :)...)'
 ytrain = string.(train_label)
 
-skmodel = LogisticRegression(fit_intercept=true)
+skmodel = LinearSVC(C=10.0, max_iter=5000)
 fit!(skmodel, Xtrain, ytrain)
 
 skaccuracy = sum(predict(skmodel, Xtest) .== ytest) / length(ytest)
