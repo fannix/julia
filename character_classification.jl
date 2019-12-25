@@ -43,11 +43,11 @@ function readdata(folder)
 end
 
 trainfolder = joinpath("/", "home", "xmeng", "projects", "julia", "train")
-resize_img, labelset = readdata(trainfolder)
+train_img, train_label = readdata(trainfolder)
 
-set_len = length(labelset)
+set_len = length(train_label)
 
-train = [make_minibatch(resize_img, labelset, idx) for idx in  partition(1:set_len, batch_size)]
+train = [make_minibatch(train_img, train_label, idx) for idx in  partition(1:set_len, batch_size)]
 
 # Data should be stored in WHCN order (width, height, # channels, # batches). 
 # https://fluxml.ai/Flux.jl/v0.10/models/layers/#Flux.Dense
@@ -69,17 +69,17 @@ model = Chain(
 accuracy(x, y) = mean(onecold(model(x)) .== onecold(y))
 loss(x, y) = crossentropy(model(x), y)
 
-evalcb = () -> @show(loss(train[1][1], train[1][2]))
+evalcb = () -> @show([accuracy(batch[1], batch[2]) for batch in train])
 
-@epochs 50 Flux.train!(loss, params(model), train, ADAM(), cb = throttle(evalcb, 10))
+@epochs 20 Flux.train!(loss, params(model), train, ADAM(), cb = throttle(evalcb, 10))
 
 
 testfolder = joinpath("/", "home", "xmeng", "projects", "julia", "test")
-testset, label = readdata(testfolder)
-test = cat(testset..., dims=4)
-@show accuracy(test, onehotbatch(label, Vector('A':'Z')))
+testset, test_label = readdata(testfolder)
+testimg = cat(testset..., dims=4)
+@show accuracy(testimg, onehotbatch(label, Vector('A':'Z')))
 
-testlabel = onecold(model(test))
+predict_test_label = onecold(model(test))
 
 # predict_y = onecold(model(testX))
 # actual_y = labelset
@@ -92,16 +92,16 @@ using ScikitLearn
 
 # This model requires scikit-learn. See
 # http://scikitlearnjl.readthedocs.io/en/latest/models/#installation
-# @sk_import linear_model: LogisticRegression
+@sk_import linear_model: LogisticRegression
 
 Xtest = hcat(reshape.(testset, :)...)'
-ytest = string.(label)
+ytest = string.(test_label)
 
-Xtrain = hcat(reshape.(resize_img, :)...)'
-ytrain = string.(labelset)
+Xtrain = hcat(reshape.(train_img, :)...)'
+ytrain = string.(train_label)
 
 skmodel = LogisticRegression(fit_intercept=true)
 fit!(skmodel, Xtrain, ytrain)
 
-skaccuracy = sum(predict(skmodel, Xtest) .== ytest) / length(y)
+skaccuracy = sum(predict(skmodel, Xtest) .== ytest) / length(ytest)
 @show skaccuracy
