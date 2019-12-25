@@ -71,7 +71,7 @@ loss(x, y) = crossentropy(model(x), y)
 
 evalcb = () -> @show([accuracy(batch[1], batch[2]) for batch in train])
 
-@epochs 2 Flux.train!(loss, params(model), train, ADAM(), cb = throttle(evalcb, 10))
+@epochs 20 Flux.train!(loss, params(model), train, ADAM(), cb = throttle(evalcb, 10))
 
 
 testfolder = joinpath("/", "home", "xmeng", "projects", "julia", "test")
@@ -103,8 +103,13 @@ ytest = string.(test_label)
 Xtrain = hcat(reshape.(train_img, :)...)'
 ytrain = string.(train_label)
 
-skmodel = LinearSVC(C=10.0, max_iter=5000)
+skmodel = LinearSVC(C=0.1, max_iter=5000)
 fit!(skmodel, Xtrain, ytrain)
 
 skaccuracy = sum(predict(skmodel, Xtest) .== ytest) / length(ytest)
 @show skaccuracy
+
+sk_predict_label = predict(skmodel, Xtest)
+using DataFrames
+df = DataFrame(actual=ytest, predict=sk_predict_label)
+df[df.actual .!= df.predict , :]
